@@ -203,27 +203,25 @@ function App() {
       {/* 항상 하단에 랭킹 표시 */}
       <div style={{
         position: 'fixed',
-        left: 0,
-        bottom: 0,
-        width: '100%',
+        left: '10px',
+        bottom: '10px',
+        width: '240px',
         background: '#444', // 배경색
         color: '#fff',
-        padding: '10px 0',
+        padding: '10px',
+        borderRadius: '8px',
         zIndex: 1000,
-        boxShadow: '0 -2px 5px rgba(0,0,0,0.3)', // 상단 그림자
+        boxShadow: '0 2px 6px rgba(0,0,0,0.3)', // 그림자
       }}>
-        <h3 style={{margin: '0 0 5px 0'}}>랭킹</h3>
+        <h3 style={{margin: '0 0 8px 0'}}>랭킹</h3>
         <ol style={{
           listStyle: 'none', // 기본 목록 스타일 제거
           padding: 0,
           margin: 0,
-          display: 'flex', // 가로로 나열
-          justifyContent: 'center', // 가운데 정렬
-          padding: '0 10px', // 좌우 패딩
         }}>
           {/* 랭킹 데이터 매핑 */}
           {ranking.map((r, i) => (
-            <li key={i} style={{ margin: '0 15px', fontWeight: 'bold' }}>
+            <li key={i} style={{ marginBottom: '4px', fontWeight: 'bold' }}>
               {r.name}: {r.score}
             </li>
           ))}
