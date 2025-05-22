@@ -120,8 +120,11 @@ function App() {
             : y + speed + 3
         )
       );
-      scoreRef.current += 1;
-      setScore(scoreRef.current);
+      setScore(prev => {
+        const newScore = prev + 1;
+        scoreRef.current = newScore;
+        return newScore;
+      });
     }, 20);
     return () => clearInterval(interval);
   }, [gameOver, difficulty]);
