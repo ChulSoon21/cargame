@@ -108,7 +108,8 @@ function Car({ x }) {
 }
 
 function App() {
-  const [carX, setCarX] = useState(GAME_WIDTH / 2 - CAR_WIDTH / 2);
+  const [laneIndex, setLaneIndex] = useState(Math.floor(LANE_COUNT / 2) - 1);
+  const carX = LANE_POSITIONS[laneIndex];
   const [obstacles, setObstacles] = useState([]);
   const [score, setScore] = useState(0);
   const [gameOver, setGameOver] = useState(false);
@@ -166,14 +167,14 @@ function App() {
         break;
       }
     }
-  }, [obstacles, carX]);
+  }, [obstacles, laneIndex]);
 
   // 키보드 조작
   useEffect(() => {
     const handleKeyDown = e => {
       if (gameOver) return;
-      if (e.key === 'ArrowLeft') setCarX(x => Math.max(0, x - 20));
-      if (e.key === 'ArrowRight') setCarX(x => Math.min(GAME_WIDTH - CAR_WIDTH, x + 20));
+      if (e.key === 'ArrowLeft') setLaneIndex(i => Math.max(0, i - 1));
+      if (e.key === 'ArrowRight') setLaneIndex(i => Math.min(LANE_COUNT - 1, i + 1));
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
@@ -204,7 +205,7 @@ function App() {
 
   // 게임 재시작
   const restart = () => {
-    setCarX(GAME_WIDTH / 2 - CAR_WIDTH / 2);
+    setLaneIndex(Math.floor(LANE_COUNT / 2) - 1);
     setObstacles([]);
     setScore(0);
     scoreRef.current = 0;
