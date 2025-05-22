@@ -20,6 +20,72 @@ function getRandomX() {
   return Math.floor(Math.random() * (GAME_WIDTH - OBSTACLE_WIDTH));
 }
 
+// 좀 더 세련된 자동차 컴포넌트
+function Car({ x }) {
+  return (
+    <div
+      style={{
+        position: 'absolute',
+        left: x,
+        top: GAME_HEIGHT - CAR_HEIGHT - 10,
+        width: CAR_WIDTH,
+        height: CAR_HEIGHT,
+        transition: 'left 0.1s ease-out',
+        pointerEvents: 'none',
+      }}
+    >
+      <div
+        style={{
+          position: 'absolute',
+          bottom: 0,
+          left: 0,
+          right: 0,
+          height: CAR_HEIGHT - 22,
+          background: 'linear-gradient(to bottom, #ff6b6b, #ee4d4d)',
+          borderRadius: '8px 8px 4px 4px',
+          boxShadow: '0 4px 8px rgba(0,0,0,0.4)',
+        }}
+      />
+      <div
+        style={{
+          position: 'absolute',
+          left: 6,
+          right: 6,
+          top: 6,
+          height: 22,
+          background: '#c0e0ff',
+          borderRadius: 4,
+          boxShadow: 'inset 0 0 3px rgba(0,0,0,0.3)',
+        }}
+      />
+      <div
+        style={{
+          position: 'absolute',
+          bottom: 2,
+          left: 5,
+          width: 16,
+          height: 16,
+          background: '#222',
+          borderRadius: '50%',
+          boxShadow: '0 0 2px rgba(0,0,0,0.6) inset',
+        }}
+      />
+      <div
+        style={{
+          position: 'absolute',
+          bottom: 2,
+          right: 5,
+          width: 16,
+          height: 16,
+          background: '#222',
+          borderRadius: '50%',
+          boxShadow: '0 0 2px rgba(0,0,0,0.6) inset',
+        }}
+      />
+    </div>
+  );
+}
+
 function App() {
   const [carX, setCarX] = useState(GAME_WIDTH / 2 - CAR_WIDTH / 2);
   const [obstacles, setObstacles] = useState([]);
@@ -168,17 +234,7 @@ function App() {
           />
         ))}
         {/* 자동차 */}
-        <div
-          style={{
-            position: 'absolute',
-            left: carX,
-            top: GAME_HEIGHT - CAR_HEIGHT - 10,
-            width: CAR_WIDTH,
-            height: CAR_HEIGHT,
-            background: 'red',
-            borderRadius: 10,
-          }}
-        />
+        <Car x={carX} />
         {/* 장애물 */}
         {obstacles.map((o, i) => (
           <div
