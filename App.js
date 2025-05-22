@@ -6,6 +6,9 @@ const CAR_WIDTH = 50;
 const CAR_HEIGHT = 80;
 const OBSTACLE_WIDTH = 50;
 const OBSTACLE_HEIGHT = 80;
+const LINE_SPACING = 100;
+const LINE_WIDTH = 6;
+const LINE_HEIGHT = 40;
 
 function getRandomX() {
   return Math.floor(Math.random() * (GAME_WIDTH - OBSTACLE_WIDTH));
@@ -18,24 +21,32 @@ function App() {
   const [gameOver, setGameOver] = useState(false);
   const [ranking, setRanking] = useState([]);
   const [name, setName] = useState('');
+  const initialLines = Array.from({ length: Math.ceil(GAME_HEIGHT / LINE_SPACING) + 1 }, (_, i) => i * LINE_SPACING);
+  const TOTAL_LINE_LENGTH = LINE_SPACING * initialLines.length;
+  const [lines, setLines] = useState(initialLines);
   const gameRef = useRef();
+  const scoreRef = useRef(0);
 
-  // 장애물 생성 및 이동
+  // 장애물과 도로선 이동 및 점수 증가
   useEffect(() => {
     if (gameOver) return;
     const interval = setInterval(() => {
       setObstacles(obs =>
         obs
-          .map(o => ({ ...o, y: o.y + 2 + Math.floor(score / 500) })) // 난이도 더 완화: 초기 속도 느리게, 증가율 낮게
+          .map(o => ({ ...o, y: o.y + 2 + Math.floor(scoreRef.current / 500) }))
           .filter(o => o.y < GAME_HEIGHT)
       );
-      if (Math.random() < 0.008 + score / 8000) { // 난이도 더 완화: 초기 생성 빈도 매우 낮게, 증가율 낮게
+      if (Math.random() < 0.008 + scoreRef.current / 8000) {
         setObstacles(obs => [...obs, { x: getRandomX(), y: -OBSTACLE_HEIGHT }]);
       }
-      setScore(s => s + 1);
+      setLines(ls =>
+        ls.map(y => (y + 5 >= GAME_HEIGHT ? y + 5 - TOTAL_LINE_LENGTH : y + 5))
+      );
+      scoreRef.current += 1;
+      setScore(scoreRef.current);
     }, 20);
     return () => clearInterval(interval);
-  }, [gameOver, score]);
+  }, [gameOver]);
 
   // 충돌 체크
   useEffect(() => {
@@ -88,6 +99,8 @@ function App() {
     setCarX(GAME_WIDTH / 2 - CAR_WIDTH / 2);
     setObstacles([]);
     setScore(0);
+    scoreRef.current = 0;
+    setLines(initialLines);
     setGameOver(false);
     setName('');
     fetchRanking(); // 재시작 시 랭킹 다시 불러오기 (이미 하단에 표시되지만 혹시 몰라 추가)
@@ -118,6 +131,21 @@ function App() {
           borderRadius: '12px', // 모서리 더 둥글게
         }}
       >
+        {/* 도로 중앙선 */}
+        {lines.map((y, i) => (
+          <div
+            key={i}
+            style={{
+              position: 'absolute',
+              left: GAME_WIDTH / 2 - LINE_WIDTH / 2,
+              top: y,
+              width: LINE_WIDTH,
+              height: LINE_HEIGHT,
+              background: '#fff',
+              opacity: 0.7,
+            }}
+          />
+        ))}
         {/* 자동차 */}
         <div
           style={{
@@ -157,7 +185,6 @@ function App() {
             placeholder="이름 입력"
             value={name}
             onChange={e => setName(e.target.value)}
-            disabled={ranking.length > 0}
             style={{
               marginRight: '10px',
               padding: '10px 12px', // 패딩 증가
@@ -166,7 +193,7 @@ function App() {
               fontSize: '1rem', // 폰트 크기
             }}
           />
-          <button onClick={submitScore} disabled={!name || ranking.length > 0}
+          <button onClick={submitScore} disabled={!name}
             style={{
               padding: '10px 20px', // 패딩 증가
               backgroundColor: '#28a745', // 녹색 계열 버튼
@@ -203,27 +230,25 @@ function App() {
       {/* 항상 하단에 랭킹 표시 */}
       <div style={{
         position: 'fixed',
-        left: 0,
-        bottom: 0,
-        width: '100%',
+        left: '10px',
+        bottom: '10px',
+        width: '240px',
         background: '#444', // 배경색
         color: '#fff',
-        padding: '10px 0',
+        padding: '10px',
+        borderRadius: '8px',
         zIndex: 1000,
-        boxShadow: '0 -2px 5px rgba(0,0,0,0.3)', // 상단 그림자
+        boxShadow: '0 2px 6px rgba(0,0,0,0.3)', // 그림자
       }}>
-        <h3 style={{margin: '0 0 5px 0'}}>랭킹</h3>
+        <h3 style={{margin: '0 0 8px 0'}}>랭킹</h3>
         <ol style={{
           listStyle: 'none', // 기본 목록 스타일 제거
           padding: 0,
           margin: 0,
-          display: 'flex', // 가로로 나열
-          justifyContent: 'center', // 가운데 정렬
-          padding: '0 10px', // 좌우 패딩
         }}>
           {/* 랭킹 데이터 매핑 */}
           {ranking.map((r, i) => (
-            <li key={i} style={{ margin: '0 15px', fontWeight: 'bold' }}>
+            <li key={i} style={{ marginBottom: '4px', fontWeight: 'bold' }}>
               {r.name}: {r.score}
             </li>
           ))}

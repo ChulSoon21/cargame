@@ -6,6 +6,9 @@ const CAR_WIDTH = 50;
 const CAR_HEIGHT = 80;
 const OBSTACLE_WIDTH = 50;
 const OBSTACLE_HEIGHT = 80;
+const LINE_SPACING = 100;
+const LINE_WIDTH = 6;
+const LINE_HEIGHT = 40;
 
 function getRandomX() {
   return Math.floor(Math.random() * (GAME_WIDTH - OBSTACLE_WIDTH));
@@ -18,24 +21,32 @@ function App() {
   const [gameOver, setGameOver] = useState(false);
   const [ranking, setRanking] = useState([]);
   const [name, setName] = useState('');
+  const initialLines = Array.from({ length: Math.ceil(GAME_HEIGHT / LINE_SPACING) + 1 }, (_, i) => i * LINE_SPACING);
+  const TOTAL_LINE_LENGTH = LINE_SPACING * initialLines.length;
+  const [lines, setLines] = useState(initialLines);
   const gameRef = useRef();
+  const scoreRef = useRef(0);
 
-  // 장애물 생성 및 이동
+  // 장애물과 도로선 이동 및 점수 증가
   useEffect(() => {
     if (gameOver) return;
     const interval = setInterval(() => {
       setObstacles(obs =>
         obs
-          .map(o => ({ ...o, y: o.y + 5 + Math.floor(score / 100) })) // 난이도 상승
+          .map(o => ({ ...o, y: o.y + 2 + Math.floor(scoreRef.current / 500) }))
           .filter(o => o.y < GAME_HEIGHT)
       );
-      if (Math.random() < 0.03 + score / 2000) { // 난이도 상승
+      if (Math.random() < 0.008 + scoreRef.current / 8000) {
         setObstacles(obs => [...obs, { x: getRandomX(), y: -OBSTACLE_HEIGHT }]);
       }
-      setScore(s => s + 1);
+      setLines(ls =>
+        ls.map(y => (y + 5 >= GAME_HEIGHT ? y + 5 - TOTAL_LINE_LENGTH : y + 5))
+      );
+      scoreRef.current += 1;
+      setScore(scoreRef.current);
     }, 20);
     return () => clearInterval(interval);
-  }, [gameOver, score]);
+  }, [gameOver]);
 
   // 충돌 체크
   useEffect(() => {
@@ -90,6 +101,8 @@ function App() {
     setCarX(GAME_WIDTH / 2 - CAR_WIDTH / 2);
     setObstacles([]);
     setScore(0);
+    scoreRef.current = 0;
+    setLines(initialLines);
     setGameOver(false);
     setName('');
     fetchRanking();
@@ -109,6 +122,21 @@ function App() {
           overflow: 'hidden',
         }}
       >
+        {/* 도로 중앙선 */}
+        {lines.map((y, i) => (
+          <div
+            key={i}
+            style={{
+              position: 'absolute',
+              left: GAME_WIDTH / 2 - LINE_WIDTH / 2,
+              top: y,
+              width: LINE_WIDTH,
+              height: LINE_HEIGHT,
+              background: '#fff',
+              opacity: 0.7,
+            }}
+          />
+        ))}
         {/* 자동차 */}
         <div
           style={{
@@ -131,7 +159,7 @@ function App() {
               top: o.y,
               width: OBSTACLE_WIDTH,
               height: OBSTACLE_HEIGHT,
-              background: 'gray',
+              background: 'linear-gradient(to bottom, #a0a0a0, #888888)',
               borderRadius: 10,
             }}
           />
@@ -156,23 +184,23 @@ function App() {
       {/* 항상 하단에 랭킹 표시 */}
       <div style={{
         position: 'fixed',
-        left: 0,
-        bottom: 0,
-        width: '100%',
+        left: '10px',
+        bottom: '10px',
+        width: '220px',
         background: '#444',
         color: '#fff',
-        padding: '10px 0'
+        padding: '10px',
+        borderRadius: '8px',
+        boxShadow: '0 2px 6px rgba(0,0,0,0.3)'
       }}>
-        <h3 style={{ margin: '0 0 5px 0' }}>랭킹</h3>
+        <h3 style={{ margin: '0 0 8px 0' }}>랭킹</h3>
         <ol style={{
           listStyle: 'none',
           padding: 0,
-          margin: 0,
-          display: 'flex',
-          justifyContent: 'center'
+          margin: 0
         }}>
           {ranking.map((r, i) => (
-            <li key={i} style={{ margin: '0 10px' }}>
+            <li key={i} style={{ marginBottom: '4px', fontWeight: 'bold' }}>
               {r.name}: {r.score}
             </li>
           ))}
