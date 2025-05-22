@@ -11,13 +11,34 @@ const LINE_WIDTH = 6;
 const LINE_HEIGHT = 40;
 
 const DIFFICULTY_SETTINGS = {
-  easy: { speed: 2, spawn: 0.006 },
-  normal: { speed: 3, spawn: 0.008 },
-  hard: { speed: 4, spawn: 0.012 },
+  // 난이도별 속도와 생성 확률을 더 크게 구분
+  easy: { speed: 2, spawn: 0.004 },
+  normal: { speed: 4, spawn: 0.008 },
+  hard: { speed: 6, spawn: 0.013 },
 };
 
+const LANE_COUNT = 4;
+const LANE_WIDTH = GAME_WIDTH / LANE_COUNT;
+const LANE_POSITIONS = Array.from({ length: LANE_COUNT }, (_, i) =>
+  i * LANE_WIDTH + (LANE_WIDTH - OBSTACLE_WIDTH) / 2
+);
+
 function getRandomX() {
-  return Math.floor(Math.random() * (GAME_WIDTH - OBSTACLE_WIDTH));
+  const lane = Math.floor(Math.random() * LANE_COUNT);
+  return LANE_POSITIONS[lane];
+}
+
+function spawnObstacles() {
+  const lanes = [...Array(LANE_COUNT).keys()];
+  for (let i = lanes.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [lanes[i], lanes[j]] = [lanes[j], lanes[i]];
+  }
+  const count = Math.floor(Math.random() * (LANE_COUNT - 1)) + 1; // 1 ~ LANE_COUNT-1
+  return lanes.slice(0, count).map(lane => ({
+    x: LANE_POSITIONS[lane],
+    y: -OBSTACLE_HEIGHT,
+  }));
 }
 
 // 좀 더 세련된 자동차 컴포넌트
@@ -114,7 +135,7 @@ function App() {
           .filter(o => o.y < GAME_HEIGHT)
       );
       if (Math.random() < spawn + scoreRef.current / 8000) {
-        setObstacles(obs => [...obs, { x: getRandomX(), y: -OBSTACLE_HEIGHT }]);
+        setObstacles(obs => [...obs, ...spawnObstacles()]);
       }
       setLines(ls =>
         ls.map(y =>
