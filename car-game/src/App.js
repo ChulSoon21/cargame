@@ -63,17 +63,28 @@ function App() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [gameOver]);
 
-  // 점수 제출 및 랭킹 조회
+  // 랭킹 불러오기
+  const fetchRanking = async () => {
+    const res = await fetch('http://localhost:5000/ranking');
+    const data = await res.json();
+    data.sort((a, b) => b.score - a.score);
+    setRanking(data);
+  };
+
+  // 점수 제출 후 랭킹 갱신
   const submitScore = async () => {
     await fetch('http://localhost:5000/submit_score', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ name, score }),
     });
-    const res = await fetch('http://localhost:5000/ranking');
-    const data = await res.json();
-    setRanking(data);
+    fetchRanking();
   };
+
+  // 초기 로딩 시 랭킹 조회
+  useEffect(() => {
+    fetchRanking();
+  }, []);
 
   // 게임 재시작
   const restart = () => {
@@ -81,12 +92,17 @@ function App() {
     setObstacles([]);
     setScore(0);
     setGameOver(false);
-    setRanking([]);
     setName('');
+    fetchRanking();
   };
 
   return (
-    <div style={{ textAlign: 'center' }}>
+    <div style={{
+      textAlign: 'center',
+      position: 'relative',
+      marginLeft: '160px',
+      padding: '20px'
+    }}>
       <h1>자동차 레이싱 게임</h1>
       <div
         ref={gameRef}
@@ -135,26 +151,39 @@ function App() {
             placeholder="이름 입력"
             value={name}
             onChange={e => setName(e.target.value)}
-            disabled={ranking.length > 0}
           />
-          <button onClick={submitScore} disabled={!name || ranking.length > 0}>
+          <button onClick={submitScore} disabled={!name}>
             점수 제출
           </button>
           <button onClick={restart}>다시 시작</button>
-          {ranking.length > 0 && (
-            <div>
-              <h3>랭킹</h3>
-              <ol>
-                {ranking.map((r, i) => (
-                  <li key={i}>
-                    {r.name}: {r.score}
-                  </li>
-                ))}
-              </ol>
-            </div>
-          )}
         </div>
       )}
+
+      {/* 왼쪽 고정 랭킹 표시 */}
+      <div style={{
+        position: 'fixed',
+        left: 0,
+        top: 0,
+        bottom: 0,
+        width: '160px',
+        background: '#444',
+        color: '#fff',
+        padding: '10px',
+        overflowY: 'auto'
+      }}>
+        <h3 style={{ marginTop: 0 }}>랭킹</h3>
+        <ol style={{
+          listStyle: 'none',
+          padding: 0,
+          margin: 0
+        }}>
+          {ranking.map((r, i) => (
+            <li key={i} style={{ margin: '5px 0' }}>
+              {i + 1}. {r.name}: {r.score}
+            </li>
+          ))}
+        </ol>
+      </div>
     </div>
   );
 }
