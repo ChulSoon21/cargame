@@ -10,6 +10,12 @@ const LINE_SPACING = 100;
 const LINE_WIDTH = 6;
 const LINE_HEIGHT = 40;
 
+const DIFFICULTY_SETTINGS = {
+  easy: { speed: 2, spawn: 0.006 },
+  normal: { speed: 3, spawn: 0.008 },
+  hard: { speed: 4, spawn: 0.012 },
+};
+
 function getRandomX() {
   return Math.floor(Math.random() * (GAME_WIDTH - OBSTACLE_WIDTH));
 }
@@ -21,6 +27,7 @@ function App() {
   const [gameOver, setGameOver] = useState(false);
   const [ranking, setRanking] = useState([]);
   const [name, setName] = useState('');
+  const [difficulty, setDifficulty] = useState('normal');
   const initialLines = Array.from({ length: Math.ceil(GAME_HEIGHT / LINE_SPACING) + 1 }, (_, i) => i * LINE_SPACING);
   const TOTAL_LINE_LENGTH = LINE_SPACING * initialLines.length;
   const [lines, setLines] = useState(initialLines);
@@ -30,23 +37,31 @@ function App() {
   // 장애물과 도로선 이동 및 점수 증가
   useEffect(() => {
     if (gameOver) return;
+    const { speed, spawn } = DIFFICULTY_SETTINGS[difficulty];
     const interval = setInterval(() => {
       setObstacles(obs =>
         obs
-          .map(o => ({ ...o, y: o.y + 2 + Math.floor(scoreRef.current / 500) }))
+          .map(o => ({
+            ...o,
+            y: o.y + speed + Math.floor(scoreRef.current / 500),
+          }))
           .filter(o => o.y < GAME_HEIGHT)
       );
-      if (Math.random() < 0.008 + scoreRef.current / 8000) {
+      if (Math.random() < spawn + scoreRef.current / 8000) {
         setObstacles(obs => [...obs, { x: getRandomX(), y: -OBSTACLE_HEIGHT }]);
       }
       setLines(ls =>
-        ls.map(y => (y + 5 >= GAME_HEIGHT ? y + 5 - TOTAL_LINE_LENGTH : y + 5))
+        ls.map(y =>
+          y + speed + 3 >= GAME_HEIGHT
+            ? y + speed + 3 - TOTAL_LINE_LENGTH
+            : y + speed + 3
+        )
       );
       scoreRef.current += 1;
       setScore(scoreRef.current);
     }, 20);
     return () => clearInterval(interval);
-  }, [gameOver]);
+  }, [gameOver, difficulty]);
 
   // 충돌 체크
   useEffect(() => {
@@ -86,8 +101,9 @@ function App() {
     await fetch('http://localhost:5000/submit_score', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, score }),
+      body: JSON.stringify({ name, score: scoreRef.current }),
     });
+    setName('');
     fetchRanking();
   };
 
@@ -111,6 +127,20 @@ function App() {
   return (
     <div style={{ textAlign: 'center', position: 'relative', paddingBottom: '80px' }}>
       <h1>자동차 레이싱 게임</h1>
+      <div style={{ marginBottom: '10px' }}>
+        <label>
+          난이도:
+          <select
+            value={difficulty}
+            onChange={e => setDifficulty(e.target.value)}
+            style={{ marginLeft: '8px' }}
+          >
+            <option value="easy">쉬움</option>
+            <option value="normal">보통</option>
+            <option value="hard">어려움</option>
+          </select>
+        </label>
+      </div>
       <div
         ref={gameRef}
         style={{
@@ -193,7 +223,7 @@ function App() {
         borderRadius: '8px',
         boxShadow: '0 2px 6px rgba(0,0,0,0.3)'
       }}>
-        <h3 style={{ margin: '0 0 8px 0' }}>랭킹</h3>
+        <h3 style={{ margin: '0 0 8px 0' }}>순위</h3>
         <ol style={{
           listStyle: 'none',
           padding: 0,
