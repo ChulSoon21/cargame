@@ -6,6 +6,8 @@ const CAR_WIDTH = 50;
 const CAR_HEIGHT = 80;
 const OBSTACLE_WIDTH = 50;
 const OBSTACLE_HEIGHT = 80;
+const STAR_SIZE = 40;
+const STAR_SPAWN = 0.002;
 const LINE_SPACING = 100;
 const LINE_WIDTH = 6;
 const LINE_HEIGHT = 40;
@@ -41,6 +43,15 @@ function spawnObstacles() {
   }));
 }
 
+function spawnStar(obstacles) {
+  const available = LANE_POSITIONS.filter(pos =>
+    obstacles.every(o => o.x !== pos || o.y > -OBSTACLE_HEIGHT)
+  );
+  if (available.length === 0) return null;
+  const x = available[Math.floor(Math.random() * available.length)];
+  return { x, y: -STAR_SIZE };
+}
+
 // 자동차 컴포넌트 (좀 더 현실적인 형태)
 function Car({ x }) {
   return (
@@ -51,7 +62,7 @@ function Car({ x }) {
         top: GAME_HEIGHT - CAR_HEIGHT - 10,
         width: CAR_WIDTH,
         height: CAR_HEIGHT,
-        transition: 'left 0.1s ease-out',
+        transition: 'left 0.25s ease-out',
         pointerEvents: 'none',
       }}
     >
@@ -118,22 +129,40 @@ function App() {
   const [lines, setLines] = useState(initialLines);
   const gameRef = useRef();
   const scoreRef = useRef(0);
+  const obstaclesRef = useRef([]);
+  const [stars, setStars] = useState([]);
+  const [lives, setLives] = useState(1);
+  const [canAttack, setCanAttack] = useState(false);
 
   // 장애물과 도로선 이동 및 점수 증가
   useEffect(() => {
     if (gameOver) return;
     const { speed, spawn } = DIFFICULTY_SETTINGS[difficulty];
     const interval = setInterval(() => {
-      setObstacles(obs =>
-        obs
+      let updatedObstacles = [];
+      setObstacles(obs => {
+        updatedObstacles = obs
           .map(o => ({
             ...o,
             y: o.y + speed + Math.floor(scoreRef.current / 500),
           }))
-          .filter(o => o.y < GAME_HEIGHT)
+          .filter(o => o.y < GAME_HEIGHT);
+        obstaclesRef.current = updatedObstacles;
+        return updatedObstacles;
+      });
+      setStars(st =>
+        st
+          .map(s => ({ ...s, y: s.y + speed + Math.floor(scoreRef.current / 500) }))
+          .filter(s => s.y < GAME_HEIGHT)
       );
       if (Math.random() < spawn + scoreRef.current / 8000) {
         setObstacles(obs => [...obs, ...spawnObstacles()]);
+      }
+      if (Math.random() < STAR_SPAWN) {
+        setStars(st => {
+          const star = spawnStar(obstaclesRef.current);
+          return star ? [...st, star] : st;
+        });
       }
       setLines(ls =>
         ls.map(y =>
@@ -153,18 +182,57 @@ function App() {
 
   // 충돌 체크
   useEffect(() => {
-    for (let o of obstacles) {
-      if (
-        o.y + OBSTACLE_HEIGHT > GAME_HEIGHT - CAR_HEIGHT - 10 &&
-        o.y < GAME_HEIGHT - 10 &&
-        o.x < carX + CAR_WIDTH &&
-        o.x + OBSTACLE_WIDTH > carX
-      ) {
-        setGameOver(true);
-        break;
+    let hit = false;
+    setObstacles(obs => {
+      const arr = [...obs];
+      for (let i = 0; i < arr.length; i++) {
+        const o = arr[i];
+        if (
+          o.y + OBSTACLE_HEIGHT > GAME_HEIGHT - CAR_HEIGHT - 10 &&
+          o.y < GAME_HEIGHT - 10 &&
+          o.x < carX + CAR_WIDTH &&
+          o.x + OBSTACLE_WIDTH > carX
+        ) {
+          hit = true;
+          arr.splice(i, 1);
+          break;
+        }
       }
+      if (hit) obstaclesRef.current = arr;
+      return arr;
+    });
+
+    if (hit) {
+      setCanAttack(false);
+      setLives(l => {
+        const next = l - 1;
+        if (next < 0) setGameOver(true);
+        return next;
+      });
     }
-  }, [obstacles, laneIndex]);
+
+    setStars(st => {
+      const remain = [];
+      let got = false;
+      for (let s of st) {
+        if (
+          s.y + STAR_SIZE > GAME_HEIGHT - CAR_HEIGHT - 10 &&
+          s.y < GAME_HEIGHT - 10 &&
+          s.x < carX + CAR_WIDTH &&
+          s.x + STAR_SIZE > carX
+        ) {
+          got = true;
+        } else {
+          remain.push(s);
+        }
+      }
+      if (got) {
+        setCanAttack(true);
+        setLives(2);
+      }
+      return remain;
+    });
+  }, [obstacles, stars, laneIndex]);
 
   // 키보드 조작
   useEffect(() => {
@@ -172,10 +240,23 @@ function App() {
       if (gameOver) return;
       if (e.key === 'ArrowLeft') setLaneIndex(i => Math.max(0, i - 1));
       if (e.key === 'ArrowRight') setLaneIndex(i => Math.min(LANE_COUNT - 1, i + 1));
+      if (e.key === ' ' && canAttack) {
+        setObstacles(obs => {
+          const idx = obs.findIndex(o => o.x === carX);
+          if (idx !== -1) {
+            const arr = [...obs];
+            arr.splice(idx, 1);
+            obstaclesRef.current = arr;
+            return arr;
+          }
+          return obs;
+        });
+        setCanAttack(false);
+      }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [gameOver]);
+  }, [gameOver, canAttack, carX]);
 
   // 점수 제출 및 랭킹 조회
   const fetchRanking = async () => {
@@ -202,6 +283,10 @@ function App() {
   const restart = () => {
     setLaneIndex(Math.floor(LANE_COUNT / 2) - 1);
     setObstacles([]);
+    obstaclesRef.current = [];
+    setStars([]);
+    setLives(1);
+    setCanAttack(false);
     setScore(0);
     scoreRef.current = 0;
     setLines(initialLines);
@@ -264,6 +349,22 @@ function App() {
             }}
           />
         ))}
+        {/* 별 아이템 */}
+        {stars.map((s, i) => (
+          <div
+            key={i}
+            style={{
+              position: 'absolute',
+              left: s.x,
+              top: s.y,
+              width: STAR_SIZE,
+              height: STAR_SIZE,
+              background: 'yellow',
+              borderRadius: '50%',
+              boxShadow: '0 0 5px rgba(255,255,0,0.8)',
+            }}
+          />
+        ))}
         {/* 플레이어 자동차 */}
         <Car x={carX} />
         {/* 장애물 */}
@@ -284,6 +385,7 @@ function App() {
         ))}
       </div>
       <h2 style={{ color: '#333', marginTop: '10px' }}>점수: {score}</h2>
+      <h3 style={{ color: '#333' }}>목숨: {lives >= 0 ? lives : 0}</h3>
       {gameOver && (
         <div>
           <h2>게임 오버!</h2>
