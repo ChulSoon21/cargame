@@ -305,7 +305,7 @@ function App() {
       position: 'relative', // 랭킹 푸터를 위해 필요
       paddingBottom: '80px', // 푸터 높이만큼 패딩
     }}>
-      <h1>자동차 레이싱 게임</h1>
+      <h1>원텍시스템 레이싱 게임</h1>
       <div style={{ marginBottom: '10px' }}>
         <label>
           난이도:
