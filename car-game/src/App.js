@@ -393,7 +393,7 @@ function App() {
         }
       `}</style>
       <div style={{ textAlign: 'center', position: 'relative', paddingBottom: '80px' }}>
-        <h1>자동차 레이싱 게임</h1>
+        <h1>원텍시스템 레이싱 게임</h1>
         <div style={{ marginBottom: '10px', fontSize: '14px', color: '#666' }}>
           조작법: 화살표 키 ← → 또는 게임 화면 클릭으로 이동, 스페이스바로 공격
         </div>
